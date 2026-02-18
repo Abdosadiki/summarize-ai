@@ -6,15 +6,31 @@ Pages: HOME · ABOUT · CONTENT · OTHERS
 
 Palette:  Navy #0B1B3A · Page #F4F7FB · Card #FFFFFF · Accent #8FB2FF
 """
+import streamlit as st
+import requests
+import time
+import re
+import html as html_lib
+
+
+LLAMA_URL = "http://127.0.0.1:8080"
+
+def llama_server_online():
+    try:
+        r = requests.get(LLAMA_URL, timeout=1.5)
+        return r.status_code < 500
+    except Exception:
+        return False
+def simple_fallback_summary(text, max_sentences=4):
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    sentences = [s for s in sentences if s]
+    return " ".join(sentences[:max_sentences])
 
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  1. IMPORTS & CONSTANTS                                     ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-import streamlit as st
-import requests
-import time
-import html as html_lib
+
 
 from services.ocr_service import extract_text_from_image, OCRError
 
@@ -135,61 +151,6 @@ html, body, [data-testid="stAppViewContainer"],
 @keyframes modalSlideUp {
     from { opacity: 0; transform: translateY(30px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ═══════════════════════════════════════════
-   3.4 — Navbar
-   ═══════════════════════════════════════════ */
-.navbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: var(--sp-3) var(--sp-6);
-    background: var(--navy);
-    margin: 0 calc(-1 * var(--sp-8)) var(--sp-2) calc(-1 * var(--sp-8));
-    animation: fadeIn 0.35s ease-out;
-}
-.nav-left { display: flex; align-items: center; gap: var(--sp-3); }
-.nav-logo {
-    width: 34px; height: 34px; background: var(--accent);
-    border-radius: var(--r-sm); display: grid; place-items: center;
-    color: var(--navy); font-weight: 700; font-size: 1rem; flex-shrink: 0;
-}
-.nav-brand {
-    font-size: 0.95rem; font-weight: 700;
-    color: var(--text-on-navy); letter-spacing: -0.3px;
-}
-.nav-center {
-    display: flex; align-items: center;
-    background: rgba(255,255,255,0.08);
-    border-radius: var(--r-full); padding: 3px 4px; gap: 2px;
-}
-.nav-pill {
-    padding: 7px 18px; font-size: 0.78rem; font-weight: 500;
-    color: rgba(255,255,255,0.6); text-decoration: none;
-    border-radius: var(--r-full); transition: var(--ease-fast); cursor: pointer;
-}
-.nav-pill:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
-.nav-pill.active { background: var(--accent); color: var(--navy); font-weight: 600; }
-.nav-right { display: flex; align-items: center; gap: var(--sp-3); }
-.nav-upgrade {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 20px; background: var(--accent);
-    color: var(--navy); font-size: 0.78rem; font-weight: 700;
-    border-radius: var(--r-full); text-decoration: none;
-    transition: var(--ease-base); cursor: pointer; border: none;
-}
-.nav-upgrade:hover {
-    background: var(--accent-hover); transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(143,178,255,0.35);
-}
-.nav-hamburger {
-    width: 34px; height: 34px; background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12); border-radius: var(--r-sm);
-    display: grid; place-items: center; cursor: pointer; transition: var(--ease-fast);
-}
-.nav-hamburger:hover { background: rgba(255,255,255,0.14); }
-.nav-hamburger svg {
-    width: 18px; height: 18px; stroke: rgba(255,255,255,0.7);
-    fill: none; stroke-width: 2; stroke-linecap: round;
 }
 
 /* ═══════════════════════════════════════════
@@ -409,7 +370,44 @@ section[data-testid="stSidebar"] {
     background: var(--bg-card) !important;
     border-right: 1px solid var(--border) !important;
 }
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: var(--text-1); }
+
+/* Force ALL sidebar text to dark so it's visible on white background */
+section[data-testid="stSidebar"],
+section[data-testid="stSidebar"] * {
+    color: var(--text-1) !important;
+    color-scheme: light !important;
+}
+
+/* Labels, headers, selectbox text, slider labels */
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] div,
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"],
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stSlider label,
+section[data-testid="stSidebar"] .stTextArea label {
+    color: var(--text-1) !important;
+}
+
+/* Selectbox dropdown selected value */
+section[data-testid="stSidebar"] [data-baseweb="select"] [data-testid="stMarkdown"],
+section[data-testid="stSidebar"] [data-baseweb="select"] span,
+section[data-testid="stSidebar"] [data-baseweb="select"] div {
+    color: var(--text-1) !important;
+}
+
+/* Sidebar collapse arrow button */
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] span {
+    color: var(--text-2) !important;
+}
+
+/* Divider */
+section[data-testid="stSidebar"] hr { border-color: var(--border) !important; }
 
 .status-chip {
     display: inline-flex; align-items: center; gap: 8px;
@@ -822,23 +820,24 @@ section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: va
 }
 
 /* ═══════════════════════════════════════════
-   3.24 — Nav button row  (hidden — functional only)
+   3.24 — Nav button row
    ═══════════════════════════════════════════ */
-/* Primary hide rule: targets the stHorizontalBlock right after #nav-btn-marker */
-div.stMarkdown:has(#nav-btn-marker) + div[data-testid="stHorizontalBlock"] {
-    display: none !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
+.nav-btn-row { display: flex; gap: var(--sp-2); justify-content: center; margin-bottom: var(--sp-4); }
+.nav-btn-row [data-testid="stBaseButton-secondary"] {
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--text-2); border-radius: var(--r-full);
+    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.3px;
+    padding: 6px 20px; transition: var(--ease-fast);
+}
+.nav-btn-row [data-testid="stBaseButton-secondary"]:hover {
+    border-color: var(--accent); color: var(--accent); background: var(--accent-muted);
 }
 
 /* ═══════════════════════════════════════════
    3.25 — Responsive
    ═══════════════════════════════════════════ */
 @media (max-width: 768px) {
-    .navbar { flex-wrap: wrap; gap: var(--sp-3); justify-content: center; padding: var(--sp-3) var(--sp-4); }
-    .nav-center { display: none; }
+    .nav-btn-row { gap: var(--sp-1); }
     .hero h1 { font-size: 1.6rem; }
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }
     .trust-row { flex-direction: column; gap: var(--sp-3); }
@@ -1632,47 +1631,15 @@ def render_others():
 
 
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  8. NAVBAR (dynamic pills)                                  ║
+# ║  8. NAV BUTTONS                                             ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 _page = st.session_state.active_page
-_pill = lambda name: "nav-pill active" if _page == name else "nav-pill"
-
-st.markdown(f"""
-<div class="navbar">
-    <div class="nav-left">
-        <div class="nav-logo">✦</div>
-        <span class="nav-brand">SummarizeAI</span>
-    </div>
-    <div class="nav-center">
-        <span class="{_pill('HOME')}">HOME</span>
-        <span class="{_pill('ABOUT')}">ABOUT</span>
-        <span class="{_pill('CONTENT')}">CONTENT</span>
-        <span class="{_pill('OTHERS')}">OTHERS</span>
-    </div>
-    <div class="nav-right">
-        <span class="nav-upgrade">✦ Upgrade Pro</span>
-        <div class="nav-hamburger">
-            <svg viewBox="0 0 24 24">
-                <line x1="4" y1="6" x2="20" y2="6"/>
-                <line x1="4" y1="12" x2="20" y2="12"/>
-                <line x1="4" y1="18" x2="20" y2="18"/>
-            </svg>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  9. NAV BUTTONS (functional — visually hidden via CSS)      ║
-# ╚══════════════════════════════════════════════════════════════╝
 
 def _go(page):
     st.session_state.active_page = page
 
-# Unique marker element — CSS uses :has() to find the NEXT sibling HorizontalBlock
-st.markdown('<span id="nav-btn-marker" style="display:none"></span>', unsafe_allow_html=True)
+st.markdown('<div class="nav-btn-row">', unsafe_allow_html=True)
 _nav_cols = st.columns([1, 1, 1, 1, 2])
 with _nav_cols[0]:
     if st.button("HOME", key="nav_home", use_container_width=True):
@@ -1689,88 +1656,73 @@ with _nav_cols[3]:
 with _nav_cols[4]:
     if st.button("✦ Upgrade Pro", key="btn_open_pricing", use_container_width=True):
         st.session_state.show_pricing = True; st.rerun()
-
-# CSS: hide the button row — targets the stHorizontalBlock right after our marker
-st.markdown("""
-<style>
-/* Hide nav routing buttons — sibling HorizontalBlock immediately after the marker */
-div.stMarkdown:has(#nav-btn-marker) + div[data-testid="stHorizontalBlock"] {
-    display: none !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  10. PRICING MODAL                                          ║
 # ╚══════════════════════════════════════════════════════════════╝
 
-if st.session_state.show_pricing:
+@st.dialog("✦ Upgrade to Pro", width="large")
+def _pricing_dialog():
     st.markdown("""
-    <div class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-close" title="Close">✕</div>
-            <p class="modal-title">Upgrade to Pro</p>
-            <p class="modal-subtitle">Choose the plan that fits your workflow</p>
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <p class="plan-name">Free</p>
-                    <p class="plan-price">$0 <span>/ month</span></p>
-                    <ul class="plan-features">
-                        <li>Basic summaries</li>
-                        <li>1,024 max tokens</li>
-                        <li>OCR (limited)</li>
-                        <li>Local mode</li>
-                    </ul>
-                </div>
-                <div class="pricing-card popular">
-                    <div class="popular-badge">Most Popular</div>
-                    <p class="plan-name">Pro</p>
-                    <p class="plan-price">$9 <span>/ month</span></p>
-                    <ul class="plan-features">
-                        <li>Up to 4,096 tokens</li>
-                        <li>Priority speed</li>
-                        <li>Advanced formats</li>
-                        <li>Export PDF / DOCX</li>
-                        <li>Custom presets</li>
-                    </ul>
-                </div>
-                <div class="pricing-card">
-                    <p class="plan-name">Team</p>
-                    <p class="plan-price">$29 <span>/ month</span></p>
-                    <ul class="plan-features">
-                        <li>Multi-user workspace</li>
-                        <li>Shared history</li>
-                        <li>Admin controls</li>
-                        <li>Usage analytics</li>
-                        <li>SLA support</li>
-                    </ul>
-                </div>
-            </div>
+    <p style="text-align:center;color:var(--text-3);font-size:0.88rem;margin:0 0 1.5rem">
+        Choose the plan that fits your workflow</p>
+    <div class="pricing-grid">
+        <div class="pricing-card">
+            <p class="plan-name">Free</p>
+            <p class="plan-price">$0 <span>/ month</span></p>
+            <ul class="plan-features">
+                <li>Basic summaries</li>
+                <li>1,024 max tokens</li>
+                <li>OCR (limited)</li>
+                <li>Local mode</li>
+            </ul>
         </div>
-    </div>""", unsafe_allow_html=True)
-
-    st.markdown("---")
-    pc1, pc2, pc3, pc4 = st.columns(4)
+        <div class="pricing-card popular">
+            <div class="popular-badge">Most Popular</div>
+            <p class="plan-name">Pro</p>
+            <p class="plan-price">$9 <span>/ month</span></p>
+            <ul class="plan-features">
+                <li>Up to 4,096 tokens</li>
+                <li>Priority speed</li>
+                <li>Advanced formats</li>
+                <li>Export PDF / DOCX</li>
+                <li>Custom presets</li>
+            </ul>
+        </div>
+        <div class="pricing-card">
+            <p class="plan-name">Team</p>
+            <p class="plan-price">$29 <span>/ month</span></p>
+            <ul class="plan-features">
+                <li>Multi-user workspace</li>
+                <li>Shared history</li>
+                <li>Admin controls</li>
+                <li>Usage analytics</li>
+                <li>SLA support</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.write("")
+    pc1, pc2, pc3 = st.columns(3)
     with pc1:
-        if st.button("Current Plan (Free)", key="btn_plan_free"):
+        if st.button("Current Plan (Free)", key="btn_plan_free", use_container_width=True):
             st.toast("You're already on the Free plan.", icon="ℹ️")
-            st.session_state.show_pricing = False; st.rerun()
+            st.rerun()
     with pc2:
-        if st.button("⚡ Upgrade to Pro", key="btn_plan_pro"):
+        if st.button("⚡ Upgrade to Pro", key="btn_plan_pro",
+                     use_container_width=True, type="primary"):
             st.toast("Pro upgrade requested! 🎉", icon="✅")
-            st.session_state.show_pricing = False; st.rerun()
+            st.rerun()
     with pc3:
-        if st.button("Contact Sales (Team)", key="btn_plan_team"):
+        if st.button("Contact Sales (Team)", key="btn_plan_team", use_container_width=True):
             st.toast("Sales team will contact you soon.", icon="📧")
-            st.session_state.show_pricing = False; st.rerun()
-    with pc4:
-        if st.button("✕ Close", key="btn_close_pricing"):
-            st.session_state.show_pricing = False; st.rerun()
+            st.rerun()
+
+if st.session_state.show_pricing:
+    st.session_state.show_pricing = False
+    _pricing_dialog()
 
 
 # ╔══════════════════════════════════════════════════════════════╗
